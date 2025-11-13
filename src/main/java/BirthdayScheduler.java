@@ -9,18 +9,20 @@ import java.util.concurrent.TimeUnit;
 
 public class BirthdayScheduler {
     private final ScheduledExecutorService scheduler;
-    private final TelegramBot telegramBot;
+    private final TelegramBot bot;
+    private final DatabaseManager database;
 
-    public BirthdayScheduler(TelegramBot telegramBot) {
+    public BirthdayScheduler(TelegramBot myBot, DatabaseManager myDatabase) {
         this.scheduler = Executors.newScheduledThreadPool(1);
-        this.telegramBot = telegramBot;
+        this.bot = myBot;
+        this.database = myDatabase;
     }
 
-    public void start() {
-        scheduleDailyCheck(9, 0);
+    public void start(LocalDate date) {
+        scheduleDailyCheck(9, 0, date);
     }
 
-    private void scheduleDailyCheck(int hour, int minute) {
+    private void scheduleDailyCheck(int hour, int minute, LocalDate date) {
         LocalTime targetTime = LocalTime.of(hour, minute);
         LocalTime now = LocalTime.now();
 
@@ -32,22 +34,20 @@ public class BirthdayScheduler {
         }
 
         scheduler.scheduleAtFixedRate(() -> {
-            LocalDate today = LocalDate.now();
-            checkBirthdays(today);  // передаем параметр
-        }, initialDelay,
+                    LocalDate today = LocalDate.now();
+                    checkBirthdays(date);
+                }, initialDelay,
                 24 * 60,
                 TimeUnit.MINUTES);
-
-        System.out.println("Birthday scheduler started. First check in " + initialDelay + " minutes");
     }
 
     private void checkBirthdays(LocalDate userBD) {
         try {
             LocalDate today = LocalDate.now();
-            System.out.println("Checking birthdays for date: " + today);
 
             if (userBD.equals(today)) {
-                String message = "🎉 Сегодня день рождения! Поздравляем!";
+                String name = this.database.getUserByBirthday(userBD.toString());
+                String message = "🎉 Сегодня день рождения у "+ name +"! Поздравляю!";
             }
 
         } catch (Exception e) {
